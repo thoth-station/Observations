@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Template
+labels:
+  template: build-logs-aggregation-cronjob
+  thoth: 0.1.0
+metadata:
+  name: build-logs-aggregation-cronjob
+  annotations:
+    description: This is Thoth Core - build-logs-aggregation Job
+    openshift.io/display-name: "Thoth: build-logs-aggregation"
+    version: 0.3.0
+    tags: poc,thoth,ai-stacks,graph,janusgraph
+    template.openshift.io/documentation-url: https://github.com/Thoth-Station/
+    template.openshift.io/long-description: This template defines resources needed to deploy Thoth Graph Refresh Job as a Proof-of-Concept to OpenShift.
+    template.openshift.io/provider-display-name: Red Hat, Inc.
+
+objects:
+- kind: CronJob
+  apiVersion: batch/v2alpha1
+  metadata:
+    name: build-logs-aggregation
+    labels:
+      app: thoth-core
+  spec:
+    schedule: "* * * * *"
+    suspend: false
+    concurrencyPolicy: Forbid
+    successfulJobsHistoryLimit: 4
+    failedJobsHistoryLimit: 4
+    jobTemplate:
+      spec:
+        template:
+          spec:
+            containers:
+            - image: build-logs-aggregation-job
+              name: build-logs-aggregation-job
+              resources:
+                requests:
+                  memory: "128Mi"
+                  cpu: "250m"
+                limits:
+                  memory: "128Mi"
+                  cpu: "250m"
+            restartPolicy: OnFailure

@@ -1,0 +1,110 @@
+apiVersion: v1
+kind: Template
+labels:
+  template: build-logs-aggregation
+  thoth: 0.1.0
+metadata:
+  name: build-logs-aggregation
+  annotations:
+    description: This is Thoth Core - build-logs-aggregation
+    openshift.io/display-name: "Thoth: build-logs-aggregation"
+    version: 0.2.0
+    tags: poc,thoth,ai-stacks,package-extract
+    template.openshift.io/documentation-url: https://github.com/Thoth-Station/
+    template.openshift.io/long-description: |-
+      This template defines resources needed to deploy Thoth
+      Package Extract as a Proof-of-Concept to OpenShift.
+    template.openshift.io/provider-display-name: Red Hat, Inc.
+
+objects:
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: build-logs-aggregation-base
+    labels:
+      app: thoth-core
+      component: build-logs-aggregation-base
+  spec:
+    resources:
+      requests:
+        cpu: 1
+        memory: 512Mi
+      limits:
+        cpu: 2
+        memory: 1024Mi
+    output:
+      to:
+        kind: ImageStreamTag
+        name: "build-logs-aggregation-base:${IMAGE_STREAM_TAG}"
+    source:
+      type: Git
+      git:
+        uri: "${GITHUB_URL}"
+        ref: "${GITHUB_REF}"
+    strategy:
+      dockerStrategy:
+        dockerfilePath: Dockerfile-base.fedora
+        from:
+          kind: DockerImage
+          name: fedora:27
+        imageOptimizationPolicy: SkipLayers
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+      imageChange: {}
+
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: build-logs-aggregation-job
+    labels:
+      app: thoth-core
+      component: build-logs-aggregation-job
+  spec:
+    resources:
+      requests:
+        cpu: 1
+        memory: 512Mi
+      limits:
+        cpu: 2
+        memory: 1024Mi
+    output:
+      to:
+        kind: ImageStreamTag
+        name: "package-extract-job:${IMAGE_STREAM_TAG}"
+    source:
+      type: Git
+      git:
+        uri: "${GITHUB_URL}"
+        ref: "${GITHUB_REF}"
+    strategy:
+      dockerStrategy:
+        dockerfilePath: Dockerfile
+        from:
+          kind: ImageStreamTag
+          name: "package-extract-base:${IMAGE_STREAM_TAG}"
+        imageOptimizationPolicy: SkipLayers
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+      imageChange: {}
+
+parameters:
+- description: Name of the github repository
+  displayName: Git Repository
+  required: true
+  name: GITHUB_URL
+  value: 'https://github.com/sushmithaaredhatdev/Build-Logs-Aggregation'
+
+- description: Git reference to be used
+  displayName: Git Reference
+  required: true
+  name: GITHUB_REF
+  value: 'master'
+
+- description: |-
+    Tag of the output ImageStream the resulting container image should go to
+  displayName: ImageStream Tag
+  required: true
+  name: IMAGE_STREAM_TAG
+  value: 'latest'
