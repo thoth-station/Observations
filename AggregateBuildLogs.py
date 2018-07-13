@@ -1,42 +1,56 @@
 import subprocess
-from io import StringIO
 import json
 from pandas.io.json import json_normalize
 import requests
-import os
-import shutil
+import numpy as np
 
 
 def get_builds():
-    StringIO(subprocess.getoutput("oc get builds --output=json > allbuildsfromproject1.json"))
+    subprocess.getoutput("oc get builds --output=json > allbuildsfromproject1.json")
     with open("allbuildsfromproject1.json", "r") as read_file:
         data = json.load(read_file)
     tabular_data = json_normalize(data['items'])
-    build_pod_names = (tabular_data['metadata.annotations.openshift.io/build.pod-name']).tolist()
-    return build_pod_names
+    build_pod_names = (tabular_data['metadata.annotations.openshift.io/build.pod-name'])
+    pod_metadata = []
+    for i in data['items']:
+        meta_data = {}
+        meta_data['apiVersion'] = i['apiVersion']
+        meta_data['kind'] = "Buildlog"
+        meta_data['name'] = i['metadata']['annotations']['openshift.io/build-config.name']
+        if 'openshift.io/build.pod-name' in i['metadata']['annotations'].keys():
+            meta_data['podname'] = i['metadata']['annotations']['openshift.io/build.pod-name']
+        else:
+            meta_data['podname'] = "N/A"
+        meta_data['namespace'] = i['metadata']['namespace']
+        meta_data['uid'] = i['metadata']['uid']
+        pod_metadata.append(meta_data)
+    return build_pod_names, pod_metadata
 
 
 def get_logs():
-    list_of_build_pods = get_builds()
-    build_logs_endpoint_url = "http://user-api-thoth-test-core.cloud.paas.upshift.redhat.com/api/v1/ui/#!/Buildlogs/post_buildlog"
-    build_logs_download_directory = os.path.dirname(os.path.realpath(__file__)) + "/BuildLogs"
-    os.makedirs('BuildLogs')
-    pod_list = [x for x in list_of_build_pods if str(x) != 'nan']
-    for pod in pod_list:
-        logs = str(subprocess.getoutput("oc logs "+pod))
-        with open("BuildLogs/"+pod+".txt", "a+") as file:
-            file.write(str(logs))
-            file_content = file.read()
-            requests.post(build_logs_endpoint_url, {'log': file_content})
-    shutil.rmtree(build_logs_download_directory, ignore_errors=True)
-    shutil.rmtree(os.path.dirname(os.path.realpath(__file__))+"allbuildsfromproject1.json", ignore_errors=True)
-    return "success"
+    get_build_info = get_builds()
+    pod_list = get_build_info[0]
+    meta_data = get_build_info[1]
+    build_logs_endpoint_url = "http://user-api-thoth-test-core.cloud.paas.upshift.redhat.com/api/v1/buildlog"
+    clean_pod_list = ['N/A' if x is np.nan else x for x in pod_list]
+    for ind, pod in enumerate(clean_pod_list):
+        logs = subprocess.getoutput("oc logs "+pod)
+        log_info= {'log': logs,'meta_data': meta_data[ind]}
+        print(log_info)
+        try:
+            response = requests.post(build_logs_endpoint_url, json=log_info)
+
+            print(response.status_code)
+            m = response.json()
+            print(m)
+            break
+        except requests.ConnectionError:
+            print("failed to connect")
+    print("over")
+    # return "success"
 
 
-def retreive_build_logs():
-    get_builds_endpoint_url="http://user-api-thoth-test-core.cloud.paas.upshift.redhat.com/api/v1/ui/#!/Buildlogs/get_buildlog"
-    r = requests.get(get_builds_endpoint_url)
-    return r
 
 
-retreive_build_logs()
+
+get_logs()
