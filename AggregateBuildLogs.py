@@ -49,8 +49,4 @@ def get_logs():
     print("over")
     # return "success"
 
-
-
-
-
 get_logs()
