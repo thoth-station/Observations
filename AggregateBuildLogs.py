@@ -3,6 +3,7 @@ import json
 from pandas.io.json import json_normalize
 import requests
 import numpy as np
+from nltk.tokenize import sent_tokenize
 
 
 def get_builds():
@@ -12,6 +13,7 @@ def get_builds():
         data = json.load(read_file)
     tabular_data = json_normalize(data['items'])
     build_pod_names = (tabular_data['metadata.annotations.openshift.io/build.pod-name']).tolist()
+    print(build_pod_names)
     api_version_list = []
     kind_list = []
     meta_data_list = []
@@ -24,7 +26,7 @@ def get_builds():
     return build_pod_names, api_version_list, kind_list, meta_data_list
 
 
-def get_logs():
+def post_build_logs():
     """The method gets the list of log files of every build and posts them to the API."""
     get_build_info = get_builds()
     pod_list=get_build_info[0]
@@ -33,14 +35,42 @@ def get_logs():
     meta_data_list = get_build_info[3]
     build_logs_endpoint_url = "http://user-api-thoth-test-core.cloud.paas.upshift.redhat.com/api/v1/buildlog"
     clean_pod_list = ['N/A' if x is np.nan else x for x in pod_list]
+    response_docid_list = []
     for index, pod in enumerate(clean_pod_list):
         logs = subprocess.getoutput("oc logs "+pod)
-        log_info = {'log': logs, 'apiVersion': api_version_list[index], 'kind': kind_list[index], 'metadata': meta_data_list[index] }
+        log_info = {'log': logs}
         response = requests.post(build_logs_endpoint_url, json=log_info)
-        print(response.status_code)
         print(response.json())
-        break
-    return "success"
+        response_docid_list.append(response.json())
+    return response_docid_list
+# 'apiVersion': api_version_list[index], 'kind': kind_list[index], 'metadata': meta_data_list[index]
+# bad requests
+# json.dumps on metadatalist
 
 
-get_logs()
+def get_build_logs():
+    """The method gets the posted build logs based on the document ID."""
+    doc_id_list = post_build_logs()
+    get_build_logs_url = "http://user-api-thoth-test-core.cloud.paas.upshift.redhat.com/api/v1/buildlog/"
+    total_logs = []
+    for document in doc_id_list:
+        for key, value in document.items():
+            get_request_url = get_build_logs_url+value
+            response = requests.get(get_request_url)
+            total_logs.append(response.json())
+    return total_logs
+
+
+def normalise_build_logs():
+    """The method is used to normalise logs and split them into multiple sections."""
+    build_logs_list = get_build_logs()
+    for log in build_logs_list:
+        print(log)
+        log_parser = log.get('log')
+        # metadata_parser = log.get('metadata')
+        # metadata_json_data = json.loads(metadata_parser)
+        sent_tokenize_list = sent_tokenize(log_parser)
+        print(sent_tokenize_list)
+
+
+normalise_build_logs()
