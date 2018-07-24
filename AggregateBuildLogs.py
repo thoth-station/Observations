@@ -1,3 +1,23 @@
+#!/usr/bin/env python3
+# Kebechet
+# Copyright(C) 2018 Sushmitha Nagarajan
+#
+# This program is free software: you can redistribute it and / or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+"""An OpenShift BuildLog Aggragator."""
+
+
 import subprocess
 import json
 from pandas.io.json import json_normalize
@@ -8,11 +28,13 @@ from nltk.tokenize import sent_tokenize
 
 def get_builds():
     """Used to get the total list of builds from a openshift project."""
-    subprocess.getoutput("oc get builds --output=json > allbuildsfromproject1.json")
+    subprocess.getoutput(
+        "oc get builds --output=json > allbuildsfromproject1.json")
     with open("allbuildsfromproject1.json", "r") as read_file:
         data = json.load(read_file)
     tabular_data = json_normalize(data['items'])
-    build_pod_names = (tabular_data['metadata.annotations.openshift.io/build.pod-name']).tolist()
+    build_pod_names = (
+        tabular_data['metadata.annotations.openshift.io/build.pod-name']).tolist()
     print(build_pod_names)
     api_version_list = []
     kind_list = []
@@ -29,7 +51,7 @@ def get_builds():
 def post_build_logs():
     """The method gets the list of log files of every build and posts them to the API."""
     get_build_info = get_builds()
-    pod_list=get_build_info[0]
+    pod_list = get_build_info[0]
     api_version_list = get_build_info[1]
     kind_list = get_build_info[2]
     meta_data_list = get_build_info[3]
@@ -73,4 +95,5 @@ def normalise_build_logs():
         print(sent_tokenize_list)
 
 
-normalise_build_logs()
+if __name__ == '__main__':
+    normalise_build_logs()
