@@ -1,0 +1,36 @@
+Documentation on my work done
+
+Sushmitha Nagarajan
+Summer Intern 
+Red Hat
+AI COE
+
+
+Machine Learning Doc2Vec model approach
+Problem Statement:
+We have lot of logs in the Openshift, going through all the logs and identifying anomalous logs is difficult.
+
+Problem Solution:
+Automate the problem with machine learning.
+
+Steps involved in doing it:
+    • Get all the builds from Openshift namespace.
+    • Get the Json file with build information.
+    • Json normalise the data in the file.
+    • Get few metadata fields from the JSON file.
+    • Collect all the build information.
+    • Post all the logs and its related information to the API.
+    • Get the log information from the API including the metadata.
+    • Store them in a location where script executes.
+    • Classify the logs into success and failure categories.
+    • Use NLTK method to split the log lines into multiple sections.
+    • Split the data into training data and testing data.
+    • Hyper tune the parameter and set the parameters
+    • The distance between vectors in test data and training data are spotted.
+    • If the distance is more, set a threshold to identify anomalous data.
+    • More the distance, more anomalous it is.
+    • After identifying the data which is anomalous, do string operations to find the error logs.
+    • Identify metadata in the erroneous logs and display them.
+
+Before executing the program, make sure to authenticate the terminal using oc login with valid credentials. This help using the oc command in cli through the program and execute the code.
+
